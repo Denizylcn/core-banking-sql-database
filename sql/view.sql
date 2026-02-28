@@ -1,0 +1,183 @@
+/*  Core Banking Data Model - View Definitions (SQL Server)*/
+
+-- 1) Transaction details (basic)
+CREATE OR ALTER VIEW dbo.VW_TransactionDetails AS
+SELECT
+    t.TRANSACTION_ID,
+    t.FROM_ACCOUNT_ID,
+    t.TO_ACCOUNT_ID,
+    t.AMOUNT,
+    t.TRANSACTION_DATE
+FROM dbo.TRANSACTIONS t;
+GO
+
+
+-- 2) Location summary
+CREATE OR ALTER VIEW dbo.VW_LocationSummary AS
+SELECT
+    l.LOCATION_ID,
+    l.STREET_NAME,
+    l.NEIGHBORHOOD_NAME,
+    l.ZIP_CODE,
+    c.CITY_ID,
+    c.CITY_NAME,
+    co.COUNTRY_ID,
+    co.COUNTRY_NAME,
+    co.COUNTRY_CODE
+FROM dbo.LOCATION l
+INNER JOIN dbo.CITY c
+    ON c.CITY_ID = l.CITY_ID
+INNER JOIN dbo.COUNTRY co
+    ON co.COUNTRY_ID = c.COUNTRY_ID;
+GO
+
+
+-- 3) Branch info + location
+CREATE OR ALTER VIEW dbo.VW_BranchInfo AS
+SELECT
+    b.BRANCH_ID,
+    b.BRANCH_CODE,
+    b.BRANCH_NAME,
+    b.BRANCH_MANAGER,
+    b.BRANCH_OPEN_DATE,
+    b.LOCATION_ID,
+    l.STREET_NAME,
+    l.ZIP_CODE,
+    c.CITY_NAME,
+    co.COUNTRY_CODE
+FROM dbo.BRANCH b
+INNER JOIN dbo.LOCATION l
+    ON l.LOCATION_ID = b.LOCATION_ID
+INNER JOIN dbo.CITY c
+    ON c.CITY_ID = l.CITY_ID
+INNER JOIN dbo.COUNTRY co
+    ON co.COUNTRY_ID = c.COUNTRY_ID;
+GO
+
+
+-- 4) Operations view (transaction + type)
+CREATE OR ALTER VIEW dbo.VW_Operations AS
+SELECT
+    t.TRANSACTION_ID,
+    t.TRANSACTION_TYPE_ID,
+    tt.TYPE_NAME,
+    tt.TYPE_DESCRIPTION,
+    t.FROM_ACCOUNT_ID,
+    t.TO_ACCOUNT_ID,
+    t.TRANSACTION_DATE,
+    t.AMOUNT
+FROM dbo.TRANSACTIONS t
+INNER JOIN dbo.TRANSACTION_TYPE tt
+    ON tt.TRANSACTION_TYPE_ID = t.TRANSACTION_TYPE_ID;
+GO
+
+
+-- 5) Customer info + credit score (FIXED join)
+CREATE OR ALTER VIEW dbo.VW_CustomerInfo AS
+SELECT
+    c.CUSTOMER_ID,
+    c.CUSTOMER_TC,
+    c.FIRST_NAME,
+    c.LAST_NAME,
+    c.JOB_TITLE,
+    c.MONTHLY_INCOME,
+    c.CREDIT_SCORE_ID,
+    cs.SCORE_VALUE,
+    cs.RISK_GROUP
+FROM dbo.CUSTOMER c
+LEFT JOIN dbo.CREDIT_SCORE cs
+    ON cs.CREDIT_SCORE_ID = c.CREDIT_SCORE_ID;
+GO
+
+
+-- 6) Employee phone info
+CREATE OR ALTER VIEW dbo.VW_EmployeePhoneInfo AS
+SELECT
+    e.EMPLOYEE_ID,
+    e.FIRST_NAME,
+    e.LAST_NAME,
+    e.POSITION,
+    e.BRANCH_ID,
+    p.PHONE_NUMBER,
+    p.PHONE_DESCRIPTION
+FROM dbo.EMPLOYEE e
+INNER JOIN dbo.PHONE_EMPLOYEE p
+    ON p.EMPLOYEE_ID = e.EMPLOYEE_ID;
+GO
+
+
+-- 7) Employee location info
+CREATE OR ALTER VIEW dbo.VW_EmployeeLocation AS
+SELECT
+    e.EMPLOYEE_ID,
+    e.FIRST_NAME,
+    e.LAST_NAME,
+    e.POSITION,
+    l.LOCATION_ID,
+    c.CITY_NAME,
+    co.COUNTRY_CODE
+FROM dbo.EMPLOYEE e
+INNER JOIN dbo.LOCATION l
+    ON l.LOCATION_ID = e.LOCATION_ID
+INNER JOIN dbo.CITY c
+    ON c.CITY_ID = l.CITY_ID
+INNER JOIN dbo.COUNTRY co
+    ON co.COUNTRY_ID = c.COUNTRY_ID;
+GO
+
+
+-- 8) Account details (account + branch + city)
+CREATE OR ALTER VIEW dbo.VW_AccountDetail AS
+SELECT
+    a.ACCOUNT_ID,
+    a.ACCOUNT_TYPE,
+    a.ACCOUNT_NUMBER,
+    a.IBAN,
+    a.CUSTOMER_ID,
+    a.BRANCH_ID,
+    b.BRANCH_NAME,
+    c.CITY_NAME,
+    co.COUNTRY_CODE
+FROM dbo.ACCOUNT a
+INNER JOIN dbo.BRANCH b
+    ON b.BRANCH_ID = a.BRANCH_ID
+INNER JOIN dbo.LOCATION l
+    ON l.LOCATION_ID = b.LOCATION_ID
+INNER JOIN dbo.CITY c
+    ON c.CITY_ID = l.CITY_ID
+INNER JOIN dbo.COUNTRY co
+    ON co.COUNTRY_ID = c.COUNTRY_ID;
+GO
+
+
+-- 9) Telephone codes (country + city)
+CREATE OR ALTER VIEW dbo.VW_TelephoneCodes AS
+SELECT
+    co.COUNTRY_ID,
+    co.COUNTRY_NAME,
+    co.COUNTRY_TELEPHONE_CODE,
+    c.CITY_ID,
+    c.CITY_NAME,
+    c.CITY_TELEPHONE_CODE
+FROM dbo.COUNTRY co
+INNER JOIN dbo.CITY c
+    ON c.COUNTRY_ID = co.COUNTRY_ID;
+GO
+
+
+-- 10) Customer city (customer + location + city)
+CREATE OR ALTER VIEW dbo.VW_CustomerCity AS
+SELECT
+    c.CUSTOMER_ID,
+    c.FIRST_NAME,
+    c.LAST_NAME,
+    cy.CITY_NAME,
+    co.COUNTRY_CODE
+FROM dbo.CUSTOMER c
+INNER JOIN dbo.LOCATION l
+    ON l.LOCATION_ID = c.LOCATION_ID
+INNER JOIN dbo.CITY cy
+    ON cy.CITY_ID = l.CITY_ID
+INNER JOIN dbo.COUNTRY co
+    ON co.COUNTRY_ID = cy.COUNTRY_ID;
+GO
