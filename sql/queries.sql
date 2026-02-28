@@ -1,0 +1,123 @@
+/*   Core Banking Data Model - Query Demonstrations  */
+
+-- 1) Combine people list (customers + employees)
+SELECT c.FIRST_NAME, c.LAST_NAME, 'CUSTOMER' AS PERSON_TYPE
+FROM dbo.CUSTOMER c
+UNION ALL
+SELECT e.FIRST_NAME, e.LAST_NAME, 'EMPLOYEE' AS PERSON_TYPE
+FROM dbo.EMPLOYEE e;
+
+
+-- 2) Transaction details with FROM account IBAN (JOIN)
+SELECT
+    t.TRANSACTION_ID,
+    t.FROM_ACCOUNT_ID,
+    fa.IBAN AS FROM_IBAN,
+    t.TO_ACCOUNT_ID,
+    t.AMOUNT,
+    t.TRANSACTION_DATE
+FROM dbo.TRANSACTIONS t
+INNER JOIN dbo.ACCOUNT fa
+    ON fa.ACCOUNT_ID = t.FROM_ACCOUNT_ID;
+
+
+-- 3) Customers and their credit cards (LEFT JOIN)
+SELECT
+    c.CUSTOMER_ID,
+    c.FIRST_NAME,
+    c.LAST_NAME,
+    cc.CARD_ID,
+    cc.CARD_NUMBER
+FROM dbo.CUSTOMER c
+LEFT JOIN dbo.CREDIT_CARD cc
+    ON cc.CUSTOMER_ID = c.CUSTOMER_ID
+ORDER BY c.CUSTOMER_ID;
+
+
+-- 4) Customers without any credit card (anti-join)
+SELECT
+    c.CUSTOMER_ID,
+    c.FIRST_NAME,
+    c.LAST_NAME
+FROM dbo.CUSTOMER c
+LEFT JOIN dbo.CREDIT_CARD cc
+    ON cc.CUSTOMER_ID = c.CUSTOMER_ID
+WHERE cc.CARD_ID IS NULL;
+
+
+-- 5) Credit score distribution (GROUP BY)
+SELECT
+    cs.RISK_GROUP,
+    COUNT(*) AS CUSTOMER_COUNT,
+    AVG(CAST(cs.SCORE_VALUE AS FLOAT)) AS AVG_SCORE
+FROM dbo.CUSTOMER c
+INNER JOIN dbo.CREDIT_SCORE cs
+    ON cs.CREDIT_SCORE_ID = c.CREDIT_SCORE_ID
+GROUP BY cs.RISK_GROUP
+ORDER BY CUSTOMER_COUNT DESC;
+
+
+-- 6) Customers located in a specific city (example: ANKARA)
+SELECT
+    c.CUSTOMER_ID,
+    c.FIRST_NAME,
+    c.LAST_NAME,
+    cy.CITY_NAME
+FROM dbo.CUSTOMER c
+INNER JOIN dbo.LOCATION l
+    ON l.LOCATION_ID = c.LOCATION_ID
+INNER JOIN dbo.CITY cy
+    ON cy.CITY_ID = l.CITY_ID
+WHERE cy.CITY_NAME = 'ANKARA';
+
+
+-- 7) Employees with salary below threshold and their phone numbers (EXISTS)
+SELECT
+    p.PHONE_NUMBER,
+    p.PHONE_DESCRIPTION
+FROM dbo.PHONE_EMPLOYEE p
+WHERE EXISTS (
+    SELECT 1
+    FROM dbo.EMPLOYEE e
+    WHERE e.EMPLOYEE_ID = p.EMPLOYEE_ID
+      AND e.SALARY < 15000
+);
+
+
+-- 8) Total employee salary per branch (GROUP BY + HAVING)
+SELECT
+    b.BRANCH_ID,
+    b.BRANCH_NAME,
+    SUM(e.SALARY) AS TOTAL_EMPLOYEE_SALARY
+FROM dbo.EMPLOYEE e
+INNER JOIN dbo.BRANCH b
+    ON b.BRANCH_ID = e.BRANCH_ID
+GROUP BY b.BRANCH_ID, b.BRANCH_NAME
+HAVING SUM(e.SALARY) > 20000
+ORDER BY TOTAL_EMPLOYEE_SALARY DESC;
+
+
+-- 9) Number of accounts per branch
+SELECT
+    b.BRANCH_ID,
+    b.BRANCH_NAME,
+    COUNT(a.ACCOUNT_ID) AS ACCOUNT_COUNT
+FROM dbo.ACCOUNT a
+INNER JOIN dbo.BRANCH b
+    ON b.BRANCH_ID = a.BRANCH_ID
+GROUP BY b.BRANCH_ID, b.BRANCH_NAME
+ORDER BY ACCOUNT_COUNT DESC;
+
+
+-- 10) Basic transaction analytics (total + average + max by transaction type)
+SELECT
+    tt.TYPE_NAME,
+    COUNT(*) AS TX_COUNT,
+    SUM(t.AMOUNT) AS TOTAL_AMOUNT,
+    AVG(t.AMOUNT) AS AVG_AMOUNT,
+    MAX(t.AMOUNT) AS MAX_AMOUNT
+FROM dbo.TRANSACTIONS t
+INNER JOIN dbo.TRANSACTION_TYPE tt
+    ON tt.TRANSACTION_TYPE_ID = t.TRANSACTION_TYPE_ID
+GROUP BY tt.TYPE_NAME
+ORDER BY TOTAL_AMOUNT DESC;
